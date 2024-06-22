@@ -133,13 +133,13 @@ select_points_and_draw_cartesian_and_polygon <- function(image_path) {
     # Draw the intersection lines from the origin to the intersection points
     if (nrow(left_intersection_points) > 0) {
       for (i in 1:nrow(left_intersection_points)) {
-        lines(c(points$x[2], left_intersection_points[i, 1]), c(points$y[2], left_intersection_points[i, 2]), col = 'pink', lwd = 3, lty = 1)
+        lines(c(points$x[2], left_intersection_points[i, 1]), c(points$y[2], left_intersection_points[i, 2]), col = 'blue', lwd = 2, lty = 2)
       }
     }
     
     if (nrow(right_intersection_points) > 0) {
       for (i in 1:nrow(right_intersection_points)) {
-        lines(c(points$x[2], right_intersection_points[i, 1]), c(points$y[2], right_intersection_points[i, 2]), col = 'pink', lwd = 3, lty = 1)
+        lines(c(points$x[2], right_intersection_points[i, 1]), c(points$y[2], right_intersection_points[i, 2]), col = 'red', lwd = 2, lty = 2)
       }
     }
     
@@ -164,27 +164,69 @@ select_points_and_draw_cartesian_and_polygon <- function(image_path) {
     Right_X_Length = as.numeric(right_x_length)
   )
   
-  # Create a list to store all spatial information
+  # Create a list to store the spatial information
   spatial_info <- list(
     original_polygon = polygon_sf,
     left_polygon = left_polygon,
     right_polygon = right_polygon
   )
   
-  # Return the results data frame and the spatial information
+  # Return the data frame and the spatial information
   return(list(results_df = results_df, spatial_info = spatial_info))
 }
+
+#SET WORKING DIRECTORY
+setwd("C:/Users/49157/Desktop/personal data/Uni/Master/Sommersemester 2024/Forest Entomology/data")
+
+# Media and fungi lists
+media_name <- c("SPAM", "YEMA")
+media_short <- c("S", "Y")
+
+fungi_list <- c("Grosmannia penicillata", "Beauveria bassiana", "Endoconidiophora", "Wickerhamomyces bisporus")
+fungi_list_short <- c("G", "B", "E", "W")
+
+# Initialize an empty data frame to store all samples
+all_samples <- data.frame()
+
+# Sample parameters
+media <- media_short[1]
+fungi_name_main <- fungi_list_short[1]
+fungi_name_sub <- fungi_list_short[3]
+number_sample <- 4
+
+# Create a unique sample name
+sample_name <- paste0(media, fungi_name_main, fungi_name_sub, number_sample)
 
 # Path to your image
 image_path <- "C:/Users/49157/Desktop/personal data/Uni/Master/Sommersemester 2024/Forest Entomology/test_fungi.jpg"
 
-# Call the function
+
+
+# Call the function to get the polygon information
 polygon_info <- select_points_and_draw_cartesian_and_polygon(image_path)
 
-# Print the results data frame
-print("Results Data Frame:")
-print(polygon_info$results_df)
 
-# Print the spatial information
-print("Spatial Information:")
+
+
+# Add the sample name to the results data frame
+polygon_info$results_df$Sample_Name <- sample_name
+
+# Reorder the columns to have Sample_Name first
+polygon_info$results_df <- polygon_info$results_df[, c("Sample_Name", setdiff(names(polygon_info$results_df), "Sample_Name"))]
+
+# Combine the results with the all_samples data frame
+all_samples <- rbind(all_samples, polygon_info$results_df)
+
+
+#When you are finish for the session you can save the dataframe as an csv.
+
+# Save the all_samples data frame to a CSV file
+write.csv(all_samples, paste0("samples_from_", Sys.Date(), ".csv"), row.names = FALSE)
+
+# Print the updated all_samples data frame
+print("All Samples Data Frame:")
+print(all_samples)
+
+# Print the spatial information for the current sample
+print("Spatial Information for Current Sample:")
 print(polygon_info$spatial_info)
