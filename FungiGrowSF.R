@@ -1,4 +1,3 @@
-# Load necessary packages
 library(jpeg)
 library(sf)
 library(lwgeom)
@@ -40,6 +39,26 @@ select_points_and_draw_cartesian_and_polygon <- function(image_path) {
   plot(1:2, type='n', xlab='', ylab='', xlim=c(0, img_width), ylim=c(img_height, 0))
   rasterImage(img, 0, img_height, img_width, 0)
   
+  # Allow the user to click on two points to set the scale
+  scale_points <- locator(2)
+  
+  # Plot the points
+  points(x = scale_points$x, y = scale_points$y, col = 'red', pch = 19)
+  
+  # Draw a line between the two points
+  lines(x = scale_points$x, y = scale_points$y, col = 'blue', lwd = 2)
+  
+  # Calculate the length of the scale line in pixels
+  dx <- scale_points$x[2] - scale_points$x[1]
+  dy <- scale_points$y[2] - scale_points$y[1]
+  pixel_length <- sqrt(dx^2 + dy^2)
+  
+  # Ask the user to input the real-world length corresponding to the scale line (e.g., in cm)
+  real_length <- as.numeric(1)
+  
+  # Calculate the scale factor (pixels per cm)
+  scale_factor <- pixel_length / real_length
+  
   # Allow the user to click on two points for the coordinate system
   points <- locator(2)
   
@@ -78,14 +97,23 @@ select_points_and_draw_cartesian_and_polygon <- function(image_path) {
   lines(c(points$x[2], y_axis_neg[1]), c(points$y[2], y_axis_neg[2]), col = 'orange', lwd = 2)
   
   # Allow the user to click multiple points for the polygon
-  polygon_points <- locator(type = "p", n = 12)
+  polygon_points <- data.frame(x = numeric(0), y = numeric(0))
+  cat("Click points to draw the polygon. Right-click to finish.\n")
+  while (TRUE) {
+    new_point <- locator(1)
+    if (is.null(new_point)) break
+    polygon_points <- rbind(polygon_points, new_point)
+    points(new_point$x, new_point$y, col = 'red', pch = 19)
+    if (nrow(polygon_points) > 1) {
+      lines(polygon_points$x[(nrow(polygon_points)-1):nrow(polygon_points)], polygon_points$y[(nrow(polygon_points)-1):nrow(polygon_points)], col = 'blue', lwd = 2)
+    }
+  }
   
   # Close the polygon by connecting the last point to the first
-  polygon_points$x <- c(polygon_points$x, polygon_points$x[1])
-  polygon_points$y <- c(polygon_points$y, polygon_points$y[1])
+  polygon_points <- rbind(polygon_points, polygon_points[1,])
   
   # Create an sf object for the polygon
-  polygon_sf <- st_polygon(list(cbind(polygon_points$x, polygon_points$y)))
+  polygon_sf <- st_polygon(list(as.matrix(polygon_points)))
   polygon_sf <- st_sfc(polygon_sf, crs = NA_crs_)  # Planar CRS
   
   # Draw the polygon
@@ -151,17 +179,17 @@ select_points_and_draw_cartesian_and_polygon <- function(image_path) {
   }
   
   # Calculate the area of the original, left, and right polygons
-  total_area <- calculate_polygon_area(polygon_sf)
-  left_area <- if (!is.null(left_polygon)) calculate_polygon_area(left_polygon) else 0
-  right_area <- if (!is.null(right_polygon)) calculate_polygon_area(right_polygon) else 0
+  total_area <- calculate_polygon_area(polygon_sf) / (scale_factor^2)
+  left_area <- if (!is.null(left_polygon)) calculate_polygon_area(left_polygon) / (scale_factor^2) else 0
+  right_area <- if (!is.null(right_polygon)) calculate_polygon_area(right_polygon) / (scale_factor^2) else 0
   
   # Create a data frame to store the area and length values
   results_df <- data.frame(
     Total_Area = as.numeric(total_area),
     Left_Area = as.numeric(left_area),
     Right_Area = as.numeric(right_area),
-    Left_X_Length = as.numeric(left_x_length),
-    Right_X_Length = as.numeric(right_x_length)
+    Left_X_Length = as.numeric(left_x_length) / scale_factor,
+    Right_X_Length = as.numeric(right_x_length) / scale_factor
   )
   
   # Create a list to store the spatial information
@@ -175,15 +203,15 @@ select_points_and_draw_cartesian_and_polygon <- function(image_path) {
   return(list(results_df = results_df, spatial_info = spatial_info))
 }
 
-#SET WORKING DIRECTORY
-setwd("C:/Users/49157/Desktop/personal data/Uni/Master/Sommersemester 2024/Forest Entomology/data")
+# SET WORKING DIRECTORY
+setwd("C:/Users/lucia/Documents/MSc Forest Sciences Freiburg/2_SoSe 24/Forest Entomology")
 
 # Media and fungi lists
 media_name <- c("SPAM", "YEMA")
 media_short <- c("S", "Y")
 
-fungi_list <- c("Grosmannia penicillata", "Beauveria bassiana", "Endoconidiophora", "Wickerhamomyces bisporus")
-fungi_list_short <- c("G", "B", "E", "W")
+fungi_list <- c("Grosmannia penicillata", "Beauveria bassiana", "Endoconidiophora", "Wickerhamomyces bisporus", "Rhodotorula sp")
+fungi_list_short <- c("G", "B", "E", "W", "R")
 
 # Initialize an empty data frame to store all samples
 all_samples <- data.frame()
@@ -198,7 +226,7 @@ number_sample <- 4
 sample_name <- paste0(media, fungi_name_main, fungi_name_sub, number_sample)
 
 # Path to your image
-image_path <- "C:/Users/49157/Desktop/personal data/Uni/Master/Sommersemester 2024/Forest Entomology/test_fungi.jpg"
+image_path <- "C:/Users/lucia/Documents/MSc Forest Sciences Freiburg/2_SoSe 24/Forest Entomology/test_fungi.jpg"
 
 
 
@@ -216,9 +244,6 @@ polygon_info$results_df <- polygon_info$results_df[, c("Sample_Name", setdiff(na
 
 # Combine the results with the all_samples data frame
 all_samples <- rbind(all_samples, polygon_info$results_df)
-
-
-#When you are finish for the session you can save the dataframe as an csv.
 
 # Save the all_samples data frame to a CSV file
 write.csv(all_samples, paste0("samples_from_", Sys.Date(), ".csv"), row.names = FALSE)
