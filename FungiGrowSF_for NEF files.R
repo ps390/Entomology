@@ -1,8 +1,7 @@
-install.packages("magick")
-
 library(magick)
 library(sf)
 library(lwgeom)
+library(writexl)
 
 # Function to calculate the area of an sf polygon
 calculate_polygon_area <- function(polygon) {
@@ -209,33 +208,26 @@ select_points_and_draw_cartesian_and_polygon <- function(image_path) {
 # SET WORKING DIRECTORY
 setwd("C:/Users/49157/Desktop/personal data/Uni/Master/Sommersemester 2024/Forest Entomology/data")
 
-# Media and fungi lists
-media_name <- c("SPAM", "YEMA")
-media_short <- c("S", "Y")
-
-fungi_list <- c("Grosmannia penicillata", "Beauveria bassiana", "Endoconidiophora", "Wickerhamomyces bisporus", "Rhodotorula sp")
-fungi_list_short <- c("G", "B", "E", "W", "R")
-
 # Initialize an empty data frame to store all samples
 all_samples <- data.frame()
 
-# Sample parameters
-media <- media_short[1]
-fungi_name_main <- fungi_list_short[1]
-fungi_name_sub <- fungi_list_short[3]
-number_sample <- 6
-
-# Create a unique sample name
-sample_name <- paste0(fungi_name_main, fungi_name_sub, media, number_sample)
+#Sequence number of image (1 or 2)
+image_number <- 2
 
 # Path to your image
-image_path <- "D:/Fungi photos/21_06_2024/DSC_0501.NEF"
+image_path <- "C:/Users/49157/Desktop/personal data/Uni/Master/Sommersemester 2024/Forest Entomology/data/Fungi/01_07_2024/BESNE.NEF"
+
+# Extract image name from the path to create the sample name
+image_name <- tools::file_path_sans_ext(basename(image_path))
+sample_name <- image_name
 
 # Call the function to get the polygon information
 polygon_info <- select_points_and_draw_cartesian_and_polygon(image_path)
 
 # Add the sample name to the results data frame
 polygon_info$results_df$Sample_Name <- sample_name
+polygon_info$results_df$image <- image_number
+polygon_info$results_df$total_image_id <- paste0(image_name, "_", image_number)
 
 # Reorder the columns to have Sample_Name first
 polygon_info$results_df <- polygon_info$results_df[, c("Sample_Name", setdiff(names(polygon_info$results_df), "Sample_Name"))]
@@ -246,7 +238,7 @@ all_samples <- rbind(all_samples, polygon_info$results_df)
 print(all_samples)
 
 # Save the all_samples data frame to a CSV file
-write.csv(all_samples, paste0("samples_from_", Sys.Date(), ".csv"), row.names = FALSE)
+write_xlsx(all_samples, paste0(image_name, Sys.Date(), ".xlsx"))
 
 # Print the updated all_samples data frame
 print("All Samples Data Frame:")
