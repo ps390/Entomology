@@ -1,7 +1,23 @@
-library(magick)
-library(sf)
-library(lwgeom)
-library(writexl)
+# Function to check if a package is installed, and install it if not
+install_and_load <- function(package) {
+  if (!require(package, character.only = TRUE)) {
+    install.packages(package, dependencies = TRUE)
+    library(package, character.only = TRUE)
+  }
+}
+
+# List of required packages
+required_packages <- c("magick", "sf", "lwgeom", "writexl")
+
+# Install and load required packages
+lapply(required_packages, install_and_load)
+
+# Check if the packages are loaded
+if(all(sapply(required_packages, require, character.only = TRUE))) {
+  message("All packages are successfully loaded.")
+} else {
+  stop("One or more packages failed to load.")
+}
 
 # Function to calculate the area of an sf polygon
 calculate_polygon_area <- function(polygon) {
@@ -206,7 +222,7 @@ select_points_and_draw_cartesian_and_polygon <- function(image_path) {
 }
 
 # SET WORKING DIRECTORY
-setwd("C:/Users/49157/Desktop/personal data/Uni/Master/Sommersemester 2024/Forest Entomology/data")
+setwd("PATH/TO/YOUR/WORKING/DIRECTION")
 
 # Initialize an empty data frame to store all samples
 all_samples <- data.frame()
@@ -214,8 +230,8 @@ all_samples <- data.frame()
 #Sequence number of image (1 or 2)
 image_number <- 2
 
-# Path to your image
-image_path <- "C:/Users/49157/Desktop/personal data/Uni/Master/Sommersemester 2024/Forest Entomology/data/Fungi/01_07_2024/BESNE.NEF"
+# Path to your image, the image name with image-type must be included in the path (here: BESNE.NEF)
+image_path <- "PATH/TO/YOUR/IMAGES/BESNE.NEF"
 
 # Extract image name from the path to create the sample name
 image_name <- tools::file_path_sans_ext(basename(image_path))
